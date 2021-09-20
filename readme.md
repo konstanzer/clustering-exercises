@@ -1,15 +1,15 @@
 Clustering Haikus
 
-Clustering artform
-How does one draw a straight line
-Where division is?
+Clustering artform /
+How does one draw a straight line /
+Where division is? 
 
-K random centroids
-Making colorful regions
-Deducing nothing
+Kay random centroids /
+Making colorful regions /
+Deducing nothing 
 
-Each member knows not
-To which group it most belongs
+Each member knows not /
+To which group it most belongs /
 Or if it should stay
 
 
