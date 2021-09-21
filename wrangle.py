@@ -1,10 +1,40 @@
 import pandas as pd
 import numpy as np
-from acquire import get_zillow_data
+from env import username, password, host
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 
 PATH = "/content/drive/MyDrive/Colab Notebooks/clustering/data/"
+
+
+def get_db_url(username, host, password, db):
+    return f'mysql+pymysql://{username}:{password}@{host}/{db}'
+
+
+def get_zillow_data():
+    url = get_db_url(username, host, password, 'zillow')
+    query = """
+    SELECT bathroomcnt, bedroomcnt, buildingqualitytypeid,
+        calculatedfinishedsquarefeet, yearbuilt, fips, lotsizesquarefeet, regionidzip,
+        structuretaxvaluedollarcnt, landtaxvaluedollarcnt, latitude, longitude,
+        taxamount, taxvaluedollarcnt
+    FROM properties_2017
+    JOIN predictions_2017 USING(parcelid)
+    WHERE propertylandusetypeid IN (260,261,262,263,264,265,266,275)
+        AND transactiondate BETWEEN '2017-05-01' AND '2017-08-31';
+    """
+    return pd.read_sql(query, url)
+
+
+def get_mall_data():
+    
+    url = get_db_url(username, host, password, 'mall_customers')
+    query =
+    """
+    SELECT *
+    FROM customers
+    """
+    return pd.read_sql(query, url)
 
 
 def wrangle_zillow(test_size=.12, k=2, thresh=.4, random_state=0, path=PATH):
@@ -36,14 +66,49 @@ def wrangle_zillow(test_size=.12, k=2, thresh=.4, random_state=0, path=PATH):
                             'propertyzoningdesc', 'year', 'calculatedbathnbr',
                             'assessmentyear', 'lotsqft', 'rawcensustractandblock',
                             'transactiondate'])
-                            
+    
+    #2. DROP COLS BASED ON THRSHOLD                    
     df = drop_columns(df, thresh)
     df = iqr_method(df, k, ['taxvalue', 'taxamount', 'taxrate'])
-    df = backfill(df)
     
     y = df.pop('logerror')
-    
-    return split_data(df, y, test_size, random_state)
+    X_train, X_test, X_val, y_train, y_test, y_val = split_data(df, y, test_size, random_state)
+
+    #3. IMPUTE MEDIAN
+    X_train = backfill(X_train)
+    X_test = backfill(X_test)
+    X_val = backfill(X_val)
+
+    scaler = MinMaxScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.fit_transform(X_test)
+    X_val = scaler.fit_transform(X_val)
+
+    return X_train, X_test, X_val, y_train, y_test, y_val
+
+
+def wrangle_mall(df, k=3):
+
+    print(df.info())
+    print(df.describe())
+    print(df.head())
+
+    df = iqr_method(df, k, ['spending_score'])
+    cat = pd.get_dummies(df['gender'])
+    df = df.drop(columns=['gender'])
+    df = pd.concat([df, cat], axis=1)
+
+    y = df.pop('spending_score')
+    scaler = MinMaxScaler()
+    X_train, X_test, X_val, y_train, y_test, y_val = split_data(df, y, .15)
+    X_train = backfill(X_train)
+    X_test = backfill(X_test)
+    X_val = backfill(X_val)
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.fit_transform(X_test)
+    X_val = scaler.fit_transform(X_val)
+
+    return X_train, X_test, X_val, y_train, y_test, y_val
 
 
 def iqr_method(df, k, cols):
@@ -61,7 +126,7 @@ def iqr_method(df, k, cols):
     return df
 
 
-def split_data(X, y, test_size, random_state):
+def split_data(X, y, test_size, random_state=0):
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
     test_size2 = test_size/(1-test_size)
