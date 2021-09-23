@@ -1,12 +1,10 @@
-Clustering Haikus
+Group science or art? /
+The steady hand draws a line /
+Where the machine does
 
-Clustering artform /
-How does one draw a straight line /
-Where division is? 
-
-Kay random centroids /
-Making colorful regions /
-Deducing nothing 
+Colorful regions /
+Distinctions of unknown sets /
+Beyond the frontier 
 
 Each member knows not /
 To which group it most belongs /
